@@ -2,7 +2,7 @@ name: C/C++ CI
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ develop feature/* ]
   pull_request:
     branches: [ develop ]
 
@@ -13,8 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: configure
-      run: ./configure
+#    - name: configure
+#      run: ./configure
     - name: make
       run: make
     - name: make check
