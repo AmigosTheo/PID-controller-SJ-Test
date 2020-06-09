@@ -71,27 +71,14 @@ int Kill_Switch_Monitor;                                                        
 int Kill_Switch_Count;                                                                                        // Counts the amount of cycles the monitored input does not change consecutively from last loop
 int Kill_Loop_Limit = 70;                                                                                     // Limit so the count is not climbing indefinitely, must always be > KILL_POINT
 
-int RollSetpoint, Roll;                                                                                       
-long accelX, accelY, accelZ;
-float gForceX, gForceY, gForceZ;
-int angleX;
-
-int PitchSetpoint, Pitch;
-int angleY;
-
-float RollError, PreviousRollError;
-float PitchError, PreviousPitchError;
-
-int RollPError, RollDError;
-float RollIError;
-int PitchPError, PitchDError;
-float PitchIError;
-
-int RollPID;
-int PitchPID;
-
-int RxP, RxI, RxD;
-int RyP, RyI, RyD;
+int RollSetpoint, Roll, PitchSetpoint, Pitch;                                                                 // Roll/Pitch is the value of tilt on the MPU, setpoint is the demanded angled
+long accelX, accelY, accelZ;                                                                                  // Accelerometer readings for 3-axis
+float gForceX, gForceY, gForceZ;                                                                              // gForce values on 3-axis, use trigonometery to calulate angle
+int angleX, angleY;                                                                                           // Calculated angle from the MPU accelerometers                                                                                 
+float RollError, PreviousRollError, PitchError, PreviousPitchError;                                           // Error is the error between setpoint and demand, previous error is the same parameter from the previous cycle                                                                                                                     
+int RollPError, RollDError, PitchPError, PitchDError;                                                         // P+D calculated contributions from the PID loop
+float RollIError, PitchIError;                                                                                // I calculated contribution from the PID loop. Needs to be a float value for small error accumulation                                                                             
+int RollPID, PitchPID;                                                                                        // P+I+D total calculated values
 
 volatile uint8_t bUpdateFlagsShared;
 volatile uint16_t unRollInShared, unPitchInShared, unThrottleInShared, unYawInShared, unSwitchDInShared, unSwitchCInShared;
@@ -213,30 +200,56 @@ APESC4 = (0-RollPID) + (0-PitchPID);
 //------------------------------------------------------Flight Controller Outputs-----------------------------------------------------------------------------------------------------
 
 if(Kill_Switch_Count > KILL_POINT || KILL_SWITCH_MONITORED_INPUT > 2200)
-  {ESCsOff();}
+  {ESCsOff();
+  Serial.print(ESCOff);
+  Serial.print("\t");
+  Serial.print(ESCOff);
+  Serial.print("\t");
+  Serial.print(ESCOff);
+  Serial.print("\t");
+  Serial.print(ESCOff);
+  Serial.print("\t");
+  Serial.println(Kill_Switch_Count);}
 
 else if(unSwitchDIn > 1500 && unSwitchCIn <= 1250)
   {Calibration();}
 
 else if(unSwitchCIn <= 1250)
-  {ESCsOff();}
+  {ESCsOff();
+  Serial.print(ESCOff);
+  Serial.print("\t");
+  Serial.print(ESCOff);
+  Serial.print("\t");
+  Serial.print(ESCOff);
+  Serial.print("\t");
+  Serial.print(ESCOff);
+  Serial.print("\t");
+  Serial.println(Kill_Switch_Count);}
 
 else if(unSwitchCIn > 1250 && unSwitchCIn <= 1750)
-  {ESC_1.write(ESC1); ESC_2.write(ESC2); ESC_3.write(ESC3); ESC_4.write(ESC4);}
+  {ESC_1.write(ESC1); ESC_2.write(ESC2); ESC_3.write(ESC3); ESC_4.write(ESC4);
+  Serial.print(ESC1);
+  Serial.print("\t");
+  Serial.print(ESC2);
+  Serial.print("\t");
+  Serial.print(ESC3);
+  Serial.print("\t");
+  Serial.print(ESC4);
+  Serial.print("\t");
+  Serial.println(Kill_Switch_Count);}
 
 else if(unSwitchCIn > 1750)
-  {ESC_1.write(APESC1); ESC_2.write(APESC2); ESC_3.write(APESC3); ESC_4.write(APESC4);}
-
-  Serial.print(RollPID);
+  {ESC_1.write(APESC1); ESC_2.write(APESC2); ESC_3.write(APESC3); ESC_4.write(APESC4);
+  Serial.print(APESC1);
   Serial.print("\t");
-  Serial.print(PitchPID);
+  Serial.print(APESC2);
   Serial.print("\t");
   Serial.print(APESC3);
   Serial.print("\t");
   Serial.print(APESC4);
   Serial.print("\t");
-  Serial.println(Kill_Switch_Count);
-  
+  Serial.println(Kill_Switch_Count);}
+
 Kill_Switch_Monitor = KILL_SWITCH_MONITORED_INPUT;
 }
 //------------------------------------------------------Flight Controller Loop End-----------------------------------------------------------------------------------------------------
@@ -248,7 +261,7 @@ Kill_Switch_Monitor = KILL_SWITCH_MONITORED_INPUT;
 
 
 
-// BELOW ARE FUNCTIONS CALLED IN WITHING THE FLIGHT CONTROLLER LOOP
+// BELOW ARE FUNCTIONS CALLED IN WITHIN THE FLIGHT CONTROLLER LOOP
 //---------------------------------Calibration Sequence-------------------------------------------------------------------------------
 void Calibration()
 {
@@ -391,30 +404,30 @@ void calcSWC()
 
 void setupMPU()
 {
-  Wire.beginTransmission(0b1101000); //This is the I2C address of the MPU (b1101000/b1101001 for AC0 low/high datasheet sec. 9.2)
-  Wire.write(0x6B); //Accessing the register 6B - Power Management (Sec. 4.28)
-  Wire.write(0b00000000); //Setting SLEEP register to 0. (Required; see Note on p. 9)
+  Wire.beginTransmission(0b1101000);
+  Wire.write(0x6B);
+  Wire.write(0b00000000);
   Wire.endTransmission();  
-  Wire.beginTransmission(0b1101000); //I2C address of the MPU
-  Wire.write(0x1B); //Accessing the register 1B - Gyroscope Configuration (Sec. 4.4) 
-  Wire.write(0x00000000); //Setting the gyro to full scale +/- 250deg./s 
+  Wire.beginTransmission(0b1101000);
+  Wire.write(0x1B);
+  Wire.write(0x00000000);
   Wire.endTransmission(); 
-  Wire.beginTransmission(0b1101000); //I2C address of the MPU
-  Wire.write(0x1C); //Accessing the register 1C - Acccelerometer Configuration (Sec. 4.5) 
-  Wire.write(0b00010000); //Setting the accel to +/- 8g
+  Wire.beginTransmission(0b1101000);
+  Wire.write(0x1C);
+  Wire.write(0b00010000);
   Wire.endTransmission(); 
 }
 
 void recordAccelRegisters() 
 {
-  Wire.beginTransmission(0b1101000); //I2C address of the MPU
-  Wire.write(0x3B); //Starting register for Accel Readings
+  Wire.beginTransmission(0b1101000);
+  Wire.write(0x3B);
   Wire.endTransmission();
-  Wire.requestFrom(0b1101000,6); //Request Accel Registers (3B - 40)
+  Wire.requestFrom(0b1101000,6);
   while(Wire.available() < 6);
-  accelX = Wire.read()<<8|Wire.read(); //Store first two bytes into accelX
-  accelY = Wire.read()<<8|Wire.read(); //Store middle two bytes into accelY
-  accelZ = Wire.read()<<8|Wire.read(); //Store last two bytes into accelZ
+  accelX = Wire.read()<<8|Wire.read();
+  accelY = Wire.read()<<8|Wire.read();
+  accelZ = Wire.read()<<8|Wire.read();
   processAccelData();
 }
 
@@ -423,8 +436,8 @@ void processAccelData()
   gForceX = accelX / 4096.0;
   gForceY = accelY / 4096.0; 
   gForceZ = accelZ / 4096.0;
-  angleX = atan(gForceX / sqrt(sq(gForceY)+sq(gForceZ)))*57.2958;
-  angleY = atan(gForceY / sqrt(sq(gForceX)+sq(gForceZ)))*57.2958;
+  angleX = atan( gForceX / sqrt(sq( gForceY ) + sq( gForceZ ))) * 57.2958;
+  angleY = atan( gForceY / sqrt(sq( gForceX ) + sq( gForceZ ))) * 57.2958;
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------
